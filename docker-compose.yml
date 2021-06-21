@@ -1,0 +1,68 @@
+version: '2'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+      - "2888:2888"
+      - "3888:3888"
+  nifi:
+    image: apache/nifi:1.13.2
+    ports:
+      - "8082:8082"
+    environment:
+      NIFI_WEB_HTTP_PORT: 8082
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kafka_client_jaas.conf:/opt/nifi/nifi-current/conf/kafka_client_jaas.conf
+      - ./bootstrap.conf:/opt/nifi/nifi-current/conf/bootstrap.conf
+  kafka:
+    image: wurstmeister/kafka:2.13-2.6.0
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      #DOCKER_API_VERSION: 1.22
+      KAFKA_BROKER_ID: 1
+      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      #KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'true'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LISTENERS: PLAINTEXT://:9092,SASL_PLAINTEXT://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://172.31.19.145:9092,SASL_PLAINTEXT://172.31.19.145:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      #KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      #KAFKA_SASL_MECHANISM: PLAIN
+      KAFKA_OPTS: '-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf'
+      #KAFKA_ADVERTISED_HOST_NAME: 172.31.19.145
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+      - ./kafka_client_jaas.conf:/etc/kafka/kafka_client_jaas.conf
+      - ./consumer.properties:/opt/kafka/config/consumer.properties
+  connect:
+    image: debezium/connect-with-oracle-jdbc:${DEBEZIUM_VERSION}
+    build:
+      context: debezium-with-oracle-jdbc
+      args:
+        DEBEZIUM_VERSION: ${DEBEZIUM_VERSION}
+    ports:
+     - 8083:8083
+     - 5005:5005
+    links:
+     - kafka
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_statuses
+      LD_LIBRARY_PATH: /instant_client
+      KAFKA_DEBUG: 'true'
+      DEBUG_SUSPEND_FLAG: n
+      JAVA_DEBUG_PORT: 0.0.0.0:5005

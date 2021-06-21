@@ -1,0 +1,18 @@
+{
+  "name": "inventory-connector",
+  "config": {
+    "connector.class" : "io.debezium.connector.oracle.OracleConnector",
+    "tasks.max" : "1",
+    "database.server.name" : "server1",
+    "database.hostname" : "172.31.19.145",
+    "database.schema": "DEBEZIUM",
+    "database.port" : "1521",
+    "database.user" : "dbzuser",
+    "database.password" : "dbz",
+    "database.out.server.name": "dbzout",
+    "database.dbname" : "XE",
+    "database.connection.adapter" : "logminer",
+    "database.history.kafka.bootstrap.servers" : "kafka:9092",
+    "database.history.kafka.topic": "schema-changes.inventory"
+  }
+}
