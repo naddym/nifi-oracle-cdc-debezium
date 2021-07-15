@@ -65,7 +65,12 @@ alter database add logfile group 6 ('/u01/app/oracle/oradata/XE/redo06.log', '/u
 # switching of CURRENT status logfile to inactive (for group 5) 
 alter system switch logfile;
 
-# Wait until the ACTIVE status changes to INACTIVE (In my case, group 5 was ACTIVE from CURRENT status. This can take few minutes to approximately half hour
+# wait until the ACTIVE status changes to INACTIVE (In my case, group 5 was ACTIVE from CURRENT status. 
+# This can take few minutes to approximately half hour. However, you can execute below command to manually 
+# checkpoint INACTIVE group
+alter system checkpoint; 
+
+# now, alter and resize group 5 after checkpointing is complete
 alter database clear logfile group 5;
 alter database drop logfile group 5;
 alter database add logfile group 5 ('/u01/app/oracle/oradata/XE/redo05.log', '/u01/app/oracle/oradata/XE/redo05a.log') size 300M reuse;
@@ -94,7 +99,7 @@ Also, we need to alter database supplemental logging all columns, this setup is 
 docker exec -i dbz_oracle sqlplus sys/top_secret@//localhost:1521/XE as sysdba
 
 # run following to alter database supplemental logs
-SQL> ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
 ```
 
 ### Running docker-compose stack
